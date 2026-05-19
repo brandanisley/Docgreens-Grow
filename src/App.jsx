@@ -137,9 +137,17 @@ export default function App(){
     if(!newRoomName.trim())return;
     const count=Math.max(1,Math.min(20,Number(newTableCount)||9));
     const tableNames=Array.from({length:count},(_,i)=>"Table "+(i+1));
-    const {data}=await supabase.from("rooms").insert({name:newRoomName.trim(),table_names:tableNames}).select().single();
-    if(data){setRooms(p=>[...p,data]);setActiveRoomId(data.id);}
-    setNewRoomName("");setNewTableCount("9");setShowAddRoom(false);
+    const {data,error}=await supabase.from("rooms").insert({name:newRoomName.trim(),table_names:tableNames}).select().single();
+    if(data){
+      const updated=[...rooms,data];
+      setRooms(updated);
+      setActiveRoomId(data.id);
+      setShowAddRoom(false);
+      setNewRoomName("");
+      setNewTableCount("9");
+    } else {
+      console.log("Room create error:",error);
+    }
   };
   const openManage=()=>{setEditRoomName(activeRoom.name);setEditTableNames([...activeRoom.table_names]);setShowManage(true);};
   const saveManage=async()=>{
