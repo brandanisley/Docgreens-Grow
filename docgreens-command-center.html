@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doc Green's Command Center</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #00c853;
+    --green-dim: rgba(0,200,83,0.15);
+    --bg: #090e09;
+    --bg2: #0f160f;
+    --bg3: #141e14;
+    --border: rgba(0,200,83,0.15);
+    --text: #e8f5e8;
+    --muted: #4a6a4a;
+    --red: #ff4444;
+    --amber: #ffb300;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    min-height: 100vh;
+    background-image:
+      linear-gradient(rgba(0,200,83,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,83,0.025) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 20px 24px; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .logo-area {}
+  .live-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--green); color: #000; padding: 2px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; margin-bottom: 4px; }
+  .live-dot { width: 6px; height: 6px; background: #000; border-radius: 50%; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .logo { font-family: var(--font-display); font-size: 38px; color: var(--green); line-height: 1; letter-spacing: 0.05em; }
+  .subtitle { font-family: var(--font-display); font-size: 20px; color: rgba(232,245,232,0.5); letter-spacing: 0.08em; }
+  .datetime { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .btn-row { display: flex; gap: 10px; align-items: center; }
+  .btn { padding: 10px 18px; border-radius: 8px; font-family: var(--font-body); font-size: 13px; cursor: pointer; border: none; font-weight: 500; transition: opacity 0.15s; }
+  .btn:hover { opacity: 0.85; }
+  .btn-primary { background: var(--green); color: #000; font-weight: 700; }
+  .btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+
+  /* Banner */
+  .banner { border-radius: 10px; padding: 13px 18px; margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .banner.red { background: rgba(255,68,68,0.08); border: 1px solid rgba(255,68,68,0.25); }
+  .banner.green { background: rgba(0,200,83,0.08); border: 1px solid rgba(0,200,83,0.25); }
+  .banner.amber { background: rgba(255,179,0,0.08); border: 1px solid rgba(255,179,0,0.25); }
+  .banner-text { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.05em; }
+  .banner.red .banner-text { color: var(--red); }
+  .banner.green .banner-text { color: var(--green); }
+  .banner.amber .banner-text { color: var(--amber); }
+  .banner-sub { font-size: 11px; color: var(--muted); }
+
+  /* KPI Grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .kpi-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  .kpi-value { font-family: var(--font-display); font-size: 26px; letter-spacing: 0.05em; line-height: 1; }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .kpi-green { color: var(--green); }
+  .kpi-amber { color: var(--amber); }
+  .kpi-red { color: var(--red); }
+  .kpi-muted { color: var(--muted); }
+
+  /* Gauges */
+  .gauge-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .gauge-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 20px 16px; display: flex; flex-direction: column; align-items: center; }
+  .gauge-label { font-size: 11px; color: var(--muted); margin-top: 4px; text-align: center; }
+  .gauge-value { font-family: var(--font-display); font-size: 15px; color: var(--text); text-align: center; margin-top: 2px; }
+
+  /* Charts */
+  .chart-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .chart-title { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .chart-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+  .chart-wrap { position: relative; height: 200px; }
+
+  /* Day of week table */
+  .dow-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+  .dow-card { background: var(--bg2); border-radius: 8px; padding: 10px 8px; text-align: center; border: 1px solid transparent; }
+  .dow-card.best { border-color: var(--green); }
+  .dow-card.worst { border-color: var(--red); }
+  .dow-name { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .dow-val { font-family: var(--font-display); font-size: 18px; margin-top: 4px; }
+  .dow-days { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  /* Recent imports */
+  .import-list { display: flex; flex-direction: column; gap: 6px; }
+  .import-row { display: flex; justify-content: space-between; align-items: center; background: var(--bg2); border-radius: 8px; padding: 9px 14px; font-size: 12px; }
+  .import-name { color: var(--text); }
+  .import-meta { color: var(--muted); }
+
+  /* Modals */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .modal { background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 28px; width: 360px; max-width: 95vw; }
+  .modal-title { font-family: var(--font-display); font-size: 22px; color: var(--green); margin-bottom: 20px; letter-spacing: 0.05em; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; }
+  .field input { width: 100%; background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 14px; font-family: var(--font-body); outline: none; }
+  .field input:focus { border-color: var(--green); }
+  .modal-btns { display: flex; gap: 10px; margin-top: 18px; }
+  .error-msg { color: var(--red); font-size: 12px; margin-top: 8px; }
+  .status-msg { font-size: 12px; margin-top: 12px; line-height: 1.6; }
+  .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 28px; text-align: center; cursor: pointer; margin-bottom: 4px; transition: border-color 0.2s; }
+  .upload-zone:hover { border-color: var(--green); }
+  .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-text { font-size: 13px; }
+  .upload-hint { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  /* Loading */
+  .loading { display: flex; align-items: center; justify-content: center; height: 300px; font-family: var(--font-display); font-size: 18px; color: var(--muted); letter-spacing: 0.1em; }
+  .empty-chart { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 180px; color: var(--muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 10px; }
+  .empty-text { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.05em; }
+  .empty-sub { font-size: 12px; margin-top: 4px; }
+
+  @media(max-width:600px) {
+    .dow-grid { grid-template-columns: repeat(4,1fr); }
+    .kpi-grid { grid-template-columns: repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="logo-area">
+      <div><span class="live-badge"><span class="live-dot"></span>LIVE</span></div>
+      <div class="logo">Doc Green's</div>
+      <div class="subtitle">Command Center</div>
+      <div class="datetime" id="datetime"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="openUpload()">↑ Import Bloom Export</button>
+      <button class="btn btn-primary" onclick="openEntry()">+ Log Today</button>
+    </div>
+  </div>
+
+  <div id="banner" class="banner amber">
+    <span class="banner-text" id="banner-text">Loading...</span>
+    <span class="banner-sub" id="banner-sub"></span>
+  </div>
+
+  <div id="main-content">
+    <div class="loading">LOADING DATA...</div>
+  </div>
+</div>
+
+<!-- Entry Modal -->
+<div id="entry-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Log Day's Numbers</div>
+    <div class="field"><label>Date</label><input type="date" id="entry-date"></div>
+    <div class="field"><label>Revenue ($)</label><input type="number" id="entry-revenue" placeholder="0.00"></div>
+    <div class="field"><label>Transactions</label><input type="number" id="entry-txn" placeholder="optional"></div>
+    <div class="field"><label>New Customers</label><input type="number" id="entry-newcust" placeholder="optional"></div>
+    <div id="entry-error" class="error-msg"></div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeEntry()">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-overlay" style="display:none">
+  <div class="modal">
+    <div class="modal-title">Import Bloom Export</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px">Itemized Sales, Sales by Day, Customer Activity, New Customers — all .xlsx</p>
+    <div class="upload-zone" onclick="document.getElementById('file-input').click()">
+      <div class="upload-icon">📂</div>
+      <div class="upload-text">Click to select file</div>
+      <div class="upload-hint">.xlsx only</div>
+    </div>
+    <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none" onchange="handleFile(event)">
+    <div id="upload-status" class="status-msg"></div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" style="width:100%" onclick="closeUpload()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://cweypmxtuhxmwhhscwdt.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN3ZXlwbXh0dWh4bXdoaHNjd2R0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMDY4MjQsImV4cCI6MjA5NDY4MjgyNH0.8LcnY45UwsNSCGPhJUvpkjrS_2XuSzpoV_1FbO3OR4I';
+const DAILY_GOAL = 2000;
+const ANNUAL_GOAL = 1000000;
+const HISTORICAL = {2019:1210077,2020:1604780,2021:1369244,2022:981319,2023:953138,2024:850475};
+
+async function sb(table, params='') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${params}`, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' }
+  });
+  return r.json();
+}
+async function sbPost(table, data, upsert='') {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': upsert ? `resolution=${upsert},return=representation` : 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  return r.json();
+}
+
+function fmt$(n) { return '$' + Math.round(n).toLocaleString(); }
+function fmtK(n) { if(!n) return '—'; return n>=1000 ? '$'+(n/1000).toFixed(1)+'k' : fmt$(n); }
+
+function excelDate(v) {
+  if(!v) return null;
+  if(typeof v === 'string' && v.match(/^\d{4}-\d{2}-\d{2}/)) return v.substring(0,10);
+  const n = parseFloat(v);
+  if(!isNaN(n) && n > 40000) {
+    const d = new Date(Date.UTC(1899,11,30) + n*86400000);
+    return d.toISOString().substring(0,10);
+  }
+  const d = new Date(v);
+  return isNaN(d) ? null : d.toISOString().substring(0,10);
+}
+
+// DateTime
+function updateClock() {
+  const now = new Date();
+  document.getElementById('datetime').textContent =
+    now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) + ' · ' +
+    now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock, 30000);
+updateClock();
+
+// Entry modal
+function openEntry() {
+  document.getElementById('entry-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('entry-revenue').value = '';
+  document.getElementById('entry-txn').value = '';
+  document.getElementById('entry-newcust').value = '';
+  document.getElementById('entry-error').textContent = '';
+  document.getElementById('entry-modal').style.display = 'flex';
+}
+function closeEntry() { document.getElementById('entry-modal').style.display = 'none'; }
+
+async function saveEntry() {
+  const date = document.getElementById('entry-date').value;
+  const rev = parseFloat(document.getElementById('entry-revenue').value);
+  const txn = parseInt(document.getElementById('entry-txn').value) || null;
+  const newc = parseInt(document.getElementById('entry-newcust').value) || null;
+  if(!rev) { document.getElementById('entry-error').textContent = 'Revenue is required'; return; }
+  const avg = txn ? rev/txn : null;
+  await sbPost('sales_overview', {date, subtotal:rev, transactions:txn, avg_basket:avg, total:rev, source_file:'manual_entry'}, 'merge-duplicates');
+  await sbPost('daily_kpi_cache', {date, total_revenue:rev, transactions:txn, avg_basket:avg, new_customers:newc}, 'merge-duplicates');
+  closeEntry();
+  loadData();
+}
+
+// Upload modal
+function openUpload() { document.getElementById('upload-modal').style.display = 'flex'; document.getElementById('upload-status').textContent = ''; }
+function closeUpload() { document.getElementById('upload-modal').style.display = 'none'; loadData(); }
+
+async function handleFile(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  const status = document.getElementById('upload-status');
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Reading file...';
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {raw:true});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {defval:null, raw:true});
+    if(!rows.length) { status.textContent = 'File appears empty.'; return; }
+
+    const cols = Object.keys(rows[0]).map(c=>c.toLowerCase());
+    let table = '', mapped = [];
+
+    // Detect file type
+    const isItemized = cols.some(c=>c.includes('unit price')||c.includes('final total')||c.includes('itemized sales date'));
+    const isSalesDay = cols.some(c=>c.includes('transactions')||c.includes('avg basket')||c.includes('subtotal'));
+    const isCustomer = cols.some(c=>c.includes('customer name')||c.includes('created date')||c.includes('last visit')||c.includes('total visits')||c.includes('customer type'));
+
+    if(isItemized) {
+      table = 'itemized_sales';
+      status.textContent = `Detected: Itemized Sales. Processing ${rows.length} rows...`;
+      const getDate = r => excelDate(r['Itemized Sales Date']||r['Date']||r['date']||r['Sale Date']);
+      mapped = rows.map(r=>({
+        date: getDate(r),
+        product_name: r['Product Name']||r['product_name'],
+        category: r['Category']||r['category'],
+        brand: r['Brand']||r['brand'],
+        unit_price: parseFloat(r['Unit Price']||r['unit_price'])||null,
+        unit_cost: parseFloat(r['Unit Cost']||r['unit_cost'])||null,
+        quantity: parseInt(r['Quantity']||r['quantity'])||null,
+        final_total: parseFloat(r['Final Total']||r['final_total']||r['Subtotal'])||null,
+        discount: parseFloat(r['Discount']||r['discount'])||null,
+        tax: parseFloat(r['Tax']||r['tax'])||null,
+        customer: r['Customer']||r['customer'],
+        source_file: file.name
+      })).filter(r=>r.date);
+    } else if(isSalesDay) {
+      table = 'sales_overview';
+      status.textContent = `Detected: Sales by Day. Processing ${rows.length} rows...`;
+      mapped = rows.map(r=>({
+        date: excelDate(r['Date']||r['date']),
+        transactions: parseInt(r['Transactions']||r['transactions'])||null,
+        subtotal: parseFloat(r['Subtotal']||r['subtotal']||r['Revenue'])||null,
+        discount: parseFloat(r['Discount']||r['discount'])||null,
+        tax: parseFloat(r['Tax']||r['tax'])||null,
+        avg_basket: parseFloat(r['Avg Basket']||r['avg_basket'])||null,
+        source_file: file.name
+      })).filter(r=>r.date);
+    } else if(isCustomer) {
+      table = 'customers';
+      status.textContent = `Detected: Customer file. Processing ${rows.length} rows...`;
+      mapped = rows.map(r=>({
+        customer_name: r['Customer Name']||r['customer_name']||r['Name'],
+        phone: r['Phone']||r['phone'],
+        email: r['Email']||r['email'],
+        first_visit: excelDate(r['First Visit']||r['first_visit']||r['Created Date & Time']||r['Created Date']),
+        last_visit: excelDate(r['Last Visit']||r['last_visit']||r['Created Date & Time']||r['Created Date']),
+        total_visits: parseInt(r['Total Visits']||r['total_visits'])||null,
+        total_spent: parseFloat(r['Total Spent']||r['total_spent'])||null,
+        source_file: file.name
+      })).filter(r=>r.customer_name);
+    } else {
+      status.style.color = 'var(--red)';
+      status.textContent = `Could not detect file type. Columns found: ${Object.keys(rows[0]).slice(0,6).join(', ')}...`;
+      return;
+    }
+
+    // Upload in chunks of 200
+    let uploaded = 0;
+    const chunk = 200;
+    for(let i=0; i<mapped.length; i+=chunk) {
+      await sbPost(table, mapped.slice(i,i+chunk));
+      uploaded += Math.min(chunk, mapped.length-i);
+      status.textContent = `Uploading... ${uploaded}/${mapped.length} rows`;
+    }
+    // Log import
+    await sbPost('import_log', {source_file:file.name, file_type:table, rows_imported:mapped.length}, 'merge-duplicates');
+    // Rebuild sales_overview from itemized if needed
+    if(table === 'itemized_sales') {
+      status.textContent = `✅ ${uploaded} rows imported! Rebuilding daily summaries...`;
+      await rebuildDailySummaries();
+    }
+    status.style.color = 'var(--green)';
+    status.textContent = `✅ Done! ${uploaded} rows imported into ${table}.`;
+    document.getElementById('file-input').value = '';
+    setTimeout(() => { closeUpload(); }, 1800);
+  } catch(err) {
+    status.style.color = 'var(--red)';
+    status.textContent = 'Error: ' + err.message;
+  }
+}
+
+async function rebuildDailySummaries() {
+  // Pull all itemized data and aggregate by day
+  const data = await sb('itemized_sales', '?select=date,final_total,customer,discount,tax&date=gte.2026-01-01&order=date');
+  if(!data || !data.length) return;
+  const byDay = {};
+  for(const r of data) {
+    if(!r.date) continue;
+    if(!byDay[r.date]) byDay[r.date] = {subtotal:0, customers:new Set(), discount:0, tax:0};
+    byDay[r.date].subtotal += parseFloat(r.final_total)||0;
+    if(r.customer) byDay[r.date].customers.add(r.customer);
+    byDay[r.date].discount += parseFloat(r.discount)||0;
+    byDay[r.date].tax += parseFloat(r.tax)||0;
+  }
+  const rows = Object.entries(byDay).map(([date,d])=>({
+    date, subtotal:Math.round(d.subtotal*100)/100,
+    transactions: d.customers.size||null,
+    avg_basket: d.customers.size ? Math.round(d.subtotal/d.customers.size*100)/100 : null,
+    discount: Math.round(d.discount*100)/100,
+    tax: Math.round(d.tax*100)/100,
+    total: Math.round(d.subtotal*100)/100,
+    source_file: 'aggregated_from_itemized'
+  }));
+  for(let i=0; i<rows.length; i+=100) {
+    await sbPost('sales_overview', rows.slice(i,i+100), 'merge-duplicates');
+  }
+}
+
+// Gauge SVG
+function gaugeHTML(pct, color, label, valueStr) {
+  pct = Math.min(pct, 1);
+  const r=54, cx=64, cy=64;
+  const arc = Math.PI*r;
+  const dash = pct*arc;
+  const pctStr = Math.round(pct*100)+'%';
+  return `
+    <div style="text-align:center">
+      <svg width="128" height="72" viewBox="0 0 128 72">
+        <path d="M10,64 A54,54 0 0,1 118,64" fill="none" stroke="rgba(0,200,83,0.1)" stroke-width="10" stroke-linecap="round"/>
+        <path d="M10,64 A54,54 0 0,1 118,64" fill="none" stroke="${color}" stroke-width="10"
+          stroke-linecap="round" stroke-dasharray="${dash} ${arc}" style="transition:stroke-dasharray 1s ease"/>
+        <text x="64" y="58" text-anchor="middle" fill="${color}" font-size="18" font-family="'Bebas Neue',sans-serif">${pctStr}</text>
+      </svg>
+      <div class="gauge-label">${label}</div>
+      <div class="gauge-value">${valueStr}</div>
+    </div>`;
+}
+
+function goalColor(pct) {
+  if(pct>=1) return 'var(--green)';
+  if(pct>=0.75) return 'var(--amber)';
+  return 'var(--red)';
+}
+
+let revenueChart = null;
+let histChart = null;
+
+async function loadData() {
+  try {
+    const [sales, kpis, imports] = await Promise.all([
+      sb('sales_overview', '?select=*&date=gte.2026-01-01&order=date.asc'),
+      sb('daily_kpi_cache', '?select=*&order=date.desc&limit=30'),
+      sb('import_log', '?select=*&order=imported_at.desc&limit=8')
+    ]);
+
+    renderDashboard(sales||[], kpis||[], imports||[]);
+  } catch(err) {
+    document.getElementById('main-content').innerHTML = `<div class="loading" style="color:var(--red)">Error loading data</div>`;
+  }
+}
+
+function renderDashboard(sales, kpis, imports) {
+  const today = kpis[0];
+  const todayRev = today?.total_revenue || 0;
+  const last7 = sales.slice(-7);
+  const avg7 = last7.length ? last7.reduce((s,r)=>s+(r.subtotal||0),0)/last7.length : 0;
+  const last30 = sales.slice(-30);
+  const rev30 = last30.reduce((s,r)=>s+(r.subtotal||0),0);
+  const ytdRev = sales.reduce((s,r)=>s+(r.subtotal||0),0);
+  const ytdDays = sales.length||1;
+  const ytdAvg = ytdRev/ytdDays;
+  const daysLeft = 365-ytdDays;
+  const projAnnual = ytdRev + (avg7*daysLeft);
+  const onTrack = avg7 >= DAILY_GOAL;
+
+  // Banner
+  const gap = DAILY_GOAL - avg7;
+  const banner = document.getElementById('banner');
+  banner.className = 'banner ' + (onTrack ? 'green' : 'red');
+  document.getElementById('banner-text').textContent = onTrack
+    ? `On track — 7-day avg ${fmtK(avg7)}/day`
+    : `Gap to goal: ${fmtK(gap)}/day below $2k target`;
+  document.getElementById('banner-sub').textContent = `${ytdDays} days of 2026 data loaded`;
+
+  // Day of week averages
+  const dowData = {};
+  const dowNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for(const r of sales) {
+    if(!r.date || !r.subtotal) continue;
+    const dow = new Date(r.date+'T12:00:00').getDay();
+    if(!dowData[dow]) dowData[dow] = {sum:0,count:0};
+    dowData[dow].sum += r.subtotal;
+    dowData[dow].count++;
+  }
+  const dowAvgs = dowNames.map((_,i) => dowData[i] ? {avg:dowData[i].sum/dowData[i].count, count:dowData[i].count} : {avg:0,count:0});
+  const validAvgs = dowAvgs.filter(d=>d.count>0).map(d=>d.avg);
+  const maxAvg = Math.max(...validAvgs, 1);
+  const minAvg = Math.min(...validAvgs, 0);
+
+  // Chart data
+  const chartData = sales.slice(-60);
+
+  // HTML
+  document.getElementById('main-content').innerHTML = `
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Today</div>
+        <div class="kpi-value ${todayRev>=DAILY_GOAL?'kpi-green':todayRev>0?'kpi-amber':'kpi-muted'}">${todayRev>0?fmtK(todayRev):'—'}</div>
+        <div class="kpi-sub">${todayRev>0?(todayRev>=DAILY_GOAL?'✓ Above goal':'Below $2k goal'):'Log today first'}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">7-Day Avg</div>
+        <div class="kpi-value ${avg7>=DAILY_GOAL?'kpi-green':'kpi-amber'}">${avg7>0?fmtK(avg7):'—'}</div>
+        <div class="kpi-sub">${avg7>0?Math.round(avg7/DAILY_GOAL*100)+'% of $2k goal':''}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Last 30 Days</div>
+        <div class="kpi-value kpi-green">${rev30>0?fmtK(rev30):'—'}</div>
+        <div class="kpi-sub">${rev30>0?fmtK(rev30/30)+'/day avg':''}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">YTD Revenue</div>
+        <div class="kpi-value kpi-green">${ytdRev>0?fmtK(ytdRev):'—'}</div>
+        <div class="kpi-sub">${ytdDays} days tracked</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">YTD Daily Avg</div>
+        <div class="kpi-value ${ytdAvg>=DAILY_GOAL?'kpi-green':'kpi-amber'}">${ytdRev>0?fmtK(ytdAvg):'—'}</div>
+        <div class="kpi-sub">Need ${fmtK(DAILY_GOAL)}/day</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Proj. Annual</div>
+        <div class="kpi-value ${projAnnual>=ANNUAL_GOAL?'kpi-green':'kpi-amber'}">${projAnnual>0?fmtK(projAnnual):'—'}</div>
+        <div class="kpi-sub">at current 7-day avg</div>
+      </div>
+    </div>
+
+    ${ytdRev > 0 ? `
+    <div class="gauge-row">
+      <div class="gauge-card">${gaugeHTML(avg7/DAILY_GOAL, goalColor(avg7/DAILY_GOAL), 'Daily $2k Goal', fmtK(avg7)+' / '+fmtK(DAILY_GOAL))}</div>
+      <div class="gauge-card">${gaugeHTML(ytdRev/(ANNUAL_GOAL*(ytdDays/365)), goalColor(ytdRev/(ANNUAL_GOAL*(ytdDays/365))), 'Annual Pace', fmtK(ytdRev)+' / '+fmtK(Math.round(ANNUAL_GOAL*(ytdDays/365))))}</div>
+      <div class="gauge-card">${gaugeHTML(projAnnual/ANNUAL_GOAL, goalColor(projAnnual/ANNUAL_GOAL), 'Projected $1M', fmtK(projAnnual)+' / $1M')}</div>
+    </div>` : ''}
+
+    <div class="chart-card">
+      <div class="chart-title">Daily Revenue — Last 60 Days</div>
+      <div class="chart-sub">Amber line = $2k daily goal</div>
+      ${chartData.length ? `<div class="chart-wrap"><canvas id="rev-chart"></canvas></div>` : `
+      <div class="empty-chart">
+        <div class="empty-icon">📊</div>
+        <div class="empty-text">No Sales Data Yet</div>
+        <div class="empty-sub">Import a Bloom export or log today's numbers</div>
+      </div>`}
+    </div>
+
+    ${validAvgs.length > 0 ? `
+    <div class="chart-card">
+      <div class="chart-title">Revenue by Day of Week — 2026</div>
+      <div class="chart-sub">Your best and worst days</div>
+      <div class="dow-grid">
+        ${dowNames.map((name,i) => {
+          const d = dowAvgs[i];
+          const isBest = d.avg === maxAvg && d.count > 0;
+          const isWorst = d.avg === minAvg && d.count > 0;
+          const color = d.avg >= DAILY_GOAL ? 'var(--green)' : d.avg >= 1500 ? 'var(--amber)' : d.count > 0 ? 'var(--red)' : 'var(--muted)';
+          return `<div class="dow-card ${isBest?'best':isWorst?'worst':''}">
+            <div class="dow-name">${name}</div>
+            <div class="dow-val" style="color:${color}">${d.count>0?fmtK(d.avg):'—'}</div>
+            <div class="dow-days">${d.count>0?d.count+' days':''}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>` : ''}
+
+    <div class="chart-card">
+      <div class="chart-title">Annual Revenue History</div>
+      <div class="chart-sub">$1M goal shown in amber — 2026 projected at current pace</div>
+      <div class="chart-wrap"><canvas id="hist-chart"></canvas></div>
+    </div>
+
+    ${imports.length ? `
+    <div class="chart-card">
+      <div class="chart-title">Recent Imports</div>
+      <div class="import-list">
+        ${imports.map(i=>`
+          <div class="import-row">
+            <span class="import-name">${i.source_file}</span>
+            <span class="import-meta">${(i.rows_imported||0).toLocaleString()} rows · ${new Date(i.imported_at).toLocaleDateString()}</span>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+  `;
+
+  // Revenue chart
+  if(chartData.length) {
+    if(revenueChart) revenueChart.destroy();
+    const ctx = document.getElementById('rev-chart').getContext('2d');
+    revenueChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: chartData.map(r => new Date(r.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})),
+        datasets: [{
+          label: 'Revenue',
+          data: chartData.map(r=>r.subtotal||0),
+          borderColor: '#00c853',
+          backgroundColor: 'rgba(0,200,83,0.08)',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: {display:false},
+          tooltip: { callbacks: { label: ctx => fmt$(ctx.raw) } }
+        },
+        scales: {
+          x: { grid:{color:'rgba(0,200,83,0.05)'}, ticks:{color:'#4a6a4a',maxTicksLimit:8,font:{size:10}} },
+          y: { grid:{color:'rgba(0,200,83,0.05)'}, ticks:{color:'#4a6a4a',callback:v=>fmtK(v),font:{size:10}} }
+        },
+        annotation: { annotations: [{ type:'line', yMin:DAILY_GOAL, yMax:DAILY_GOAL, borderColor:'rgba(255,179,0,0.6)', borderWidth:1, borderDash:[4,4] }] }
+      }
+    });
+    // Draw goal line manually
+    Chart.register({
+      id: 'goalLine',
+      afterDraw(chart) {
+        const {ctx, chartArea:{left,right}, scales:{y}} = chart;
+        const yPos = y.getPixelForValue(DAILY_GOAL);
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([4,4]);
+        ctx.strokeStyle = 'rgba(255,179,0,0.6)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(left, yPos);
+        ctx.lineTo(right, yPos);
+        ctx.stroke();
+        ctx.fillStyle = '#ffb300';
+        ctx.font = '10px DM Sans';
+        ctx.fillText('$2k goal', right-52, yPos-4);
+        ctx.restore();
+      }
+    });
+    revenueChart.update();
+  }
+
+  // Historical chart
+  const histLabels = Object.keys(HISTORICAL);
+  const histVals = Object.values(HISTORICAL);
+  if(projAnnual > 0) { histLabels.push('2026 proj.'); histVals.push(Math.round(projAnnual)); }
+  if(histChart) histChart.destroy();
+  const ctx2 = document.getElementById('hist-chart')?.getContext('2d');
+  if(ctx2) {
+    histChart = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: histLabels,
+        datasets: [{
+          label: 'Revenue',
+          data: histVals,
+          backgroundColor: histVals.map((v,i)=> histLabels[i]==='2026 proj.' ? 'rgba(0,200,83,0.4)' : v>=ANNUAL_GOAL ? '#00c853' : 'rgba(0,200,83,0.55)'),
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>fmt$(ctx.raw)}} },
+        scales: {
+          x: { grid:{display:false}, ticks:{color:'#4a6a4a',font:{size:11}} },
+          y: { grid:{color:'rgba(0,200,83,0.05)'}, ticks:{color:'#4a6a4a',callback:v=>'$'+(v/1000)+'k',font:{size:10}} }
+        }
+      }
+    });
+    // Goal line on hist chart
+    Chart.register({
+      id: 'histGoalLine',
+      afterDraw(chart) {
+        if(chart.canvas.id !== 'hist-chart') return;
+        const {ctx, chartArea:{left,right}, scales:{y}} = chart;
+        const yPos = y.getPixelForValue(ANNUAL_GOAL);
+        ctx.save();
+        ctx.beginPath();
+        ctx.setLineDash([4,4]);
+        ctx.strokeStyle = 'rgba(255,179,0,0.6)';
+        ctx.lineWidth = 1;
+        ctx.moveTo(left, yPos);
+        ctx.lineTo(right, yPos);
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+    histChart.update();
+  }
+}
+
+// Init
+loadData();
+</script>
+</body>
+</html>
